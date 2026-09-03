@@ -1,0 +1,21 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Golang
+        uses: actions/setup-go@v7
