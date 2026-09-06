@@ -3,6 +3,7 @@ package go_aws_logging
 import (
 	"bytes"
 	"context"
+	"log/slog"
 	"testing"
 )
 
@@ -18,31 +19,35 @@ func (l *logGetter) Get() string {
 	return l.buffer.String()
 }
 
-func (l *logger) testLogger(t *testing.T) (*logger, LogGetter) {
+func (l *logger) testLogger(t *testing.T) (logger, LogGetter) {
 	t.Helper()
 	writer := &bytes.Buffer{}
-	return l.initializeWithWriter(writer), &logGetter{buffer: writer}
+	if log, ok := l.initializeWithWriter(writer, slog.LevelDebug.String()).(*logger); ok {
+		return *log, &logGetter{buffer: writer}
+	}
+	t.Fail()
+	return logger{}, nil
 }
 
 func Test_LoggerInitialize(t *testing.T) {
 	regionInput := "us-east-1"
 	envInput := "dev"
 	applicationInput := "my-app"
-	logger := NewLogger(regionInput, envInput, applicationInput)
+	l := NewLogger(regionInput, envInput, applicationInput).(*logger)
 
-	if logger.region != regionInput {
-		t.Errorf("Expected region to be '%s', got '%s'", regionInput, logger.region)
+	if l.region != regionInput {
+		t.Errorf("Expected region to be '%s', got '%s'", regionInput, l.region)
 	}
-	if logger.env != envInput {
-		t.Errorf("Expected env to be '%s', got '%s'", envInput, logger.env)
+	if l.env != envInput {
+		t.Errorf("Expected env to be '%s', got '%s'", envInput, l.env)
 	}
-	if logger.application != applicationInput {
-		t.Errorf("Expected application to be '%s', got '%s'", applicationInput, logger.application)
+	if l.application != applicationInput {
+		t.Errorf("Expected application to be '%s', got '%s'", applicationInput, l.application)
 	}
-	if logger.handler == nil {
+	if l.handler == nil {
 		t.Error("Expected handler to be initialized, got nil")
 	}
-	if logger.context == nil {
+	if l.context == nil {
 		t.Error("Expected context to be initialized, got nil")
 	}
 }
@@ -53,36 +58,36 @@ func Test_LoggerFromOptions(t *testing.T) {
 		Env:         "prod",
 		Application: "my-service",
 	}
-	logger := FromOptions(options)
+	l := FromOptions(options).(*logger)
 
-	if logger.region != options.Region {
-		t.Errorf("Expected region to be '%s', got '%s'", options.Region, logger.region)
+	if l.region != options.Region {
+		t.Errorf("Expected region to be '%s', got '%s'", options.Region, l.region)
 	}
-	if logger.env != options.Env {
-		t.Errorf("Expected env to be '%s', got '%s'", options.Env, logger.env)
+	if l.env != options.Env {
+		t.Errorf("Expected env to be '%s', got '%s'", options.Env, l.env)
 	}
-	if logger.application != options.Application {
-		t.Errorf("Expected application to be '%s', got '%s'", options.Application, logger.application)
+	if l.application != options.Application {
+		t.Errorf("Expected application to be '%s', got '%s'", options.Application, l.application)
 	}
-	if logger.context == nil {
+	if l.context == nil {
 		t.Error("Expected context to be initialized, got nil")
 	}
 }
 
 func Test_LoggerFromEmptyContext(t *testing.T) {
 	ctx := context.Background()
-	logger := FromContext(ctx)
+	l := FromContext(ctx).(*logger)
 
-	if logger.region != "" {
-		t.Errorf("Expected region to be empty, got '%s'", logger.region)
+	if l.region != "" {
+		t.Errorf("Expected region to be empty, got '%s'", l.region)
 	}
-	if logger.env != "" {
-		t.Errorf("Expected env to be empty, got '%s'", logger.env)
+	if l.env != "" {
+		t.Errorf("Expected env to be empty, got '%s'", l.env)
 	}
-	if logger.application != "" {
-		t.Errorf("Expected application to be empty, got '%s'", logger.application)
+	if l.application != "" {
+		t.Errorf("Expected application to be empty, got '%s'", l.application)
 	}
-	if logger.context == nil {
+	if l.context == nil {
 		t.Error("Expected context to be initialized, got nil")
 	}
 }
@@ -95,18 +100,18 @@ func Test_LoggerFromContextWithValues(t *testing.T) {
 	ctx := context.WithValue(context.Background(), "region", regionInput)
 	ctx = context.WithValue(ctx, "env", envInput)
 	ctx = context.WithValue(ctx, "application", applicationInput)
-	logger := FromContext(ctx)
+	l := FromContext(ctx).(*logger)
 
-	if logger.region != regionInput {
-		t.Errorf("Expected region to be '%s', got '%s'", regionInput, logger.region)
+	if l.region != regionInput {
+		t.Errorf("Expected region to be '%s', got '%s'", regionInput, l.region)
 	}
-	if logger.env != envInput {
-		t.Errorf("Expected env to be '%s', got '%s'", envInput, logger.env)
+	if l.env != envInput {
+		t.Errorf("Expected env to be '%s', got '%s'", envInput, l.env)
 	}
-	if logger.application != applicationInput {
-		t.Errorf("Expected application to be '%s', got '%s'", applicationInput, logger.application)
+	if l.application != applicationInput {
+		t.Errorf("Expected application to be '%s', got '%s'", applicationInput, l.application)
 	}
-	if logger.context == nil {
+	if l.context == nil {
 		t.Error("Expected context to be initialized, got nil")
 	}
 }

@@ -5,12 +5,20 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"strings"
 )
 
 type LoggingOptions struct {
 	Region      string
 	Env         string
 	Application string
+	LogLevel    string
+}
+
+type Logger interface {
+	SetContext(ctx context.Context) Logger
+	Info(message string)
+	InfoCtx(ctx context.Context, message string)
 }
 
 type logger struct {
@@ -21,13 +29,27 @@ type logger struct {
 	handler     *slog.Logger
 }
 
-func (l *logger) initialize() *logger {
-	return l.initializeWithWriter(os.Stdout)
+func (l *logger) initialize(logLevel string) Logger {
+	return l.initializeWithWriter(os.Stdout, logLevel)
 }
 
-func (l *logger) initializeWithWriter(writer io.Writer) *logger {
+func mapLogLevelToSlogLevel(logLevel string) slog.Level {
+	switch strings.ToUpper(logLevel) {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "INFO":
+		return slog.LevelInfo
+	case "WARN":
+		return slog.LevelWarn
+	case "ERROR":
+		return slog.LevelError
+	}
+	return 0 // defaults to INFO
+}
+
+func (l *logger) initializeWithWriter(writer io.Writer, logLevel string) Logger {
 	handler := slog.NewJSONHandler(writer, &slog.HandlerOptions{
-		Level:     slog.LevelDebug,
+		Level:     mapLogLevelToSlogLevel(logLevel),
 		AddSource: false,
 	})
 	attrs := []slog.Attr{
@@ -39,24 +61,24 @@ func (l *logger) initializeWithWriter(writer io.Writer) *logger {
 	return l
 }
 
-func NewLogger(region string, env string, application string) *logger {
-	logger := &logger{
+func NewLogger(region string, env string, application string) Logger {
+	l := &logger{
 		region:      region,
 		env:         env,
 		application: application,
 		context:     context.Background(),
 	}
-	return logger.initialize()
+	return l.initialize(slog.LevelDebug.String())
 }
 
-func FromOptions(options LoggingOptions) *logger {
-	logger := &logger{
+func FromOptions(options LoggingOptions) Logger {
+	l := &logger{
 		region:      options.Region,
 		env:         options.Env,
 		application: options.Application,
 		context:     context.Background(),
 	}
-	return logger.initialize()
+	return l.initialize(options.LogLevel)
 }
 
 func getValueFromContextAsStringOrDefault(ctx context.Context, key string, defaultValue string) string {
@@ -70,34 +92,19 @@ func getValueFromContextAsStringOrDefault(ctx context.Context, key string, defau
 	return defaultValue
 }
 
-func FromContext(ctx context.Context) *logger {
-	logger := &logger{
+func FromContext(ctx context.Context) Logger {
+	l := &logger{
 		region:      getValueFromContextAsStringOrDefault(ctx, "region", ""),
 		env:         getValueFromContextAsStringOrDefault(ctx, "env", ""),
 		application: getValueFromContextAsStringOrDefault(ctx, "application", ""),
 		context:     ctx,
 	}
-	return logger.initialize()
+	return l.initialize(getValueFromContextAsStringOrDefault(ctx, "loglevel", "DEBUG"))
 }
 
-func FromConfig(config *AwsConfig) *logger {
-	logger := &logger{
-		region:      config.Region,
-		env:         config.RuntimeEnvironment,
-		application: config.AppID,
-		context:     context.Background(),
-	}
-	return logger.initialize()
-}
-
-func (l *logger) WithContext(ctx context.Context) *logger {
-	newLogger := &logger{
-		region:      l.region,
-		env:         l.env,
-		application: l.application,
-		context:     ctx,
-	}
-	return newLogger.initialize()
+func (l *logger) SetContext(ctx context.Context) Logger {
+	l.context = ctx
+	return l
 }
 
 func (l *logger) Info(message string) {
