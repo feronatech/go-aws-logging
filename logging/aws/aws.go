@@ -2,7 +2,7 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
-	logging "github.com/feronatech/go-aws-logging"
+	"github.com/feronatech/go-aws-logging/logging"
 )
 
 func FromConfig(config *aws.Config) logging.Logger {

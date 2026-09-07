@@ -1,4 +1,4 @@
-package go_aws_logging
+package logging
 
 import (
 	"context"

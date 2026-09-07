@@ -21,3 +21,35 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          if [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            VERSION="${VERSION%%-*}"  # Remove everything after '-'
+            VERSION="${VERSION%%.*}"  # Remove everything after first '.'
+          fi
+          echo "Extracted version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Release package
+        uses: softprops/action-gh-release@v3
+        with:
+          body: |
+            **Installation:**
+            ```bash
+            go get github.com/feronatech/go-aws-logging@v${{ steps.get_version.outputs.version }}
+            ```
+            **Usage:**
+            ```go
+            import "github.com/feronatech/go-aws-logging/logging"
+
+            logger := NewLogger("us-east-1", "dev", "myapp")
+            ```
+
+          generate_release_notes: true
+          make_latest: true
