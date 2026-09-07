@@ -2,9 +2,13 @@ package core
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
+	"reflect"
+	"runtime/debug"
+	"strings"
 
 	"github.com/feronatech/go-aws-logging/logging/core/utils"
 )
@@ -29,6 +33,10 @@ type Logger interface {
 	DebugCtx(ctx context.Context, message string, extra map[string]any)
 	Info(message string, extra map[string]any)
 	InfoCtx(ctx context.Context, message string, extra map[string]any)
+	Warn(message string, extra map[string]any)
+	WarnCtx(ctx context.Context, message string, extra map[string]any)
+	Error(message string, extra map[string]any, err error)
+	ErrorCtx(ctx context.Context, message string, extra map[string]any, err error)
 }
 
 type logger struct {
@@ -109,6 +117,25 @@ func handleExtraAttributes(extra map[string]any) slog.Attr {
 	return slog.Any("context", attrs)
 }
 
+func handleErrorAttribute(err error) slog.Attr {
+	if err == nil {
+		return slog.Attr{}
+	}
+	stackTraces := []string{}
+	for entry := range strings.SplitSeq(strings.TrimSuffix(string(debug.Stack()), "\n"), "\n") {
+		stackTraces = append(stackTraces, strings.Trim(entry, "\t"))
+	}
+	attrs := []slog.Attr{
+		slog.String("name", reflect.TypeOf(err).String()),
+		slog.String("message", err.Error()),
+		slog.Any("stack", stackTraces),
+	}
+	if cause := errors.Unwrap(err); cause != nil {
+		attrs = append(attrs, slog.String("cause", cause.Error()))
+	}
+	return slog.Any("error", attrs)
+}
+
 func (l *logger) Debug(message string, extra map[string]any) {
 	l.InfoCtx(l.context, message, extra)
 }
@@ -123,4 +150,20 @@ func (l *logger) Info(message string, extra map[string]any) {
 
 func (l *logger) InfoCtx(ctx context.Context, message string, extra map[string]any) {
 	l.handler.LogAttrs(ctx, slog.LevelInfo, message, handleExtraAttributes(extra))
+}
+
+func (l *logger) Warn(message string, extra map[string]any) {
+	l.WarnCtx(l.context, message, extra)
+}
+
+func (l *logger) WarnCtx(ctx context.Context, message string, extra map[string]any) {
+	l.handler.LogAttrs(ctx, slog.LevelWarn, message, handleExtraAttributes(extra))
+}
+
+func (l *logger) Error(message string, extra map[string]any, err error) {
+	l.ErrorCtx(l.context, message, extra, err)
+}
+
+func (l *logger) ErrorCtx(ctx context.Context, message string, extra map[string]any, err error) {
+	l.handler.LogAttrs(ctx, slog.LevelError, message, handleExtraAttributes(extra), handleErrorAttribute(err))
 }

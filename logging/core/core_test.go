@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -139,6 +140,22 @@ func Test_LoggerSetContext(t *testing.T) {
 	}
 }
 
+func Test_LoggerDebug(t *testing.T) {
+	regionInput := "us-east-1"
+	envInput := "dev"
+	applicationInput := "my-app"
+	l := NewLogger(regionInput, envInput, applicationInput).(*logger)
+	testLogger, logGetter := l.testLogger(t)
+
+	testMessage := "This is a test debug message"
+	testLogger.Debug(testMessage, nil)
+
+	logOutput := logGetter.Get()
+	if !bytes.Contains([]byte(logOutput), []byte(testMessage)) {
+		t.Errorf("Expected debug output to contain '%s', got '%s'", testMessage, logOutput)
+	}
+}
+
 func Test_LoggerInfo(t *testing.T) {
 	regionInput := "us-east-1"
 	envInput := "dev"
@@ -186,6 +203,61 @@ func Test_LoggerInfoWithExtra(t *testing.T) {
 		extraRequestIdValue,
 		extraRequestMsKey,
 		fmt.Sprintf("%d", extraRequestMsValue),
+	} {
+		if !bytes.Contains([]byte(logOutput), []byte(key)) {
+			t.Errorf("Expected log output to contain '%s', got '%s'", key, logOutput)
+		}
+	}
+}
+
+func Test_LoggerWarn(t *testing.T) {
+	regionInput := "us-east-1"
+	envInput := "dev"
+	applicationInput := "my-app"
+	l := NewLogger(regionInput, envInput, applicationInput).(*logger)
+	testLogger, logGetter := l.testLogger(t)
+
+	testMessage := "This is a warning test message"
+	testLogger.Warn(testMessage, nil)
+
+	logOutput := logGetter.Get()
+	if !bytes.Contains([]byte(logOutput), []byte(testMessage)) {
+		t.Errorf("Expected warning output to contain '%s', got '%s'", testMessage, logOutput)
+	}
+}
+
+func Test_LoggerError(t *testing.T) {
+	regionInput := "us-east-1"
+	envInput := "dev"
+	applicationInput := "my-app"
+	l := NewLogger(regionInput, envInput, applicationInput).(*logger)
+	testLogger, logGetter := l.testLogger(t)
+
+	testMessage := "This is an error test message"
+	testLogger.Error(testMessage, nil, nil)
+
+	logOutput := logGetter.Get()
+	if !bytes.Contains([]byte(logOutput), []byte(testMessage)) {
+		t.Errorf("Expected error output to contain '%s', got '%s'", testMessage, logOutput)
+	}
+}
+
+func Test_LoggerErrorWithRealError(t *testing.T) {
+	regionInput := "us-east-1"
+	envInput := "dev"
+	applicationInput := "my-app"
+	l := NewLogger(regionInput, envInput, applicationInput).(*logger)
+	testLogger, logGetter := l.testLogger(t)
+
+	err := errors.New("this is a test error")
+
+	testMessage := "This is an error test message"
+	testLogger.Error(testMessage, nil, err)
+
+	logOutput := logGetter.Get()
+	for _, key := range []string{
+		testMessage,
+		err.Error(),
 	} {
 		if !bytes.Contains([]byte(logOutput), []byte(key)) {
 			t.Errorf("Expected log output to contain '%s', got '%s'", key, logOutput)
