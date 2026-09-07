@@ -8,6 +8,15 @@ import (
 	"strings"
 )
 
+type loggingContextKey string
+
+const (
+	LoggingContextKeyRegion      loggingContextKey = "region"
+	LoggingContextKeyEnv         loggingContextKey = "env"
+	LoggingContextKeyApplication loggingContextKey = "application"
+	LoggingContextKeyLogLevel    loggingContextKey = "loglevel"
+)
+
 type LoggingOptions struct {
 	Region      string
 	Env         string
@@ -81,7 +90,7 @@ func FromOptions(options LoggingOptions) Logger {
 	return l.initialize(options.LogLevel)
 }
 
-func getValueFromContextAsStringOrDefault(ctx context.Context, key string, defaultValue string) string {
+func getValueFromContextAsStringOrDefault(ctx context.Context, key loggingContextKey, defaultValue string) string {
 	if ctx == nil {
 		return defaultValue
 	}
@@ -94,12 +103,12 @@ func getValueFromContextAsStringOrDefault(ctx context.Context, key string, defau
 
 func FromContext(ctx context.Context) Logger {
 	l := &logger{
-		region:      getValueFromContextAsStringOrDefault(ctx, "region", ""),
-		env:         getValueFromContextAsStringOrDefault(ctx, "env", ""),
-		application: getValueFromContextAsStringOrDefault(ctx, "application", ""),
+		region:      getValueFromContextAsStringOrDefault(ctx, LoggingContextKeyRegion, ""),
+		env:         getValueFromContextAsStringOrDefault(ctx, LoggingContextKeyEnv, ""),
+		application: getValueFromContextAsStringOrDefault(ctx, LoggingContextKeyApplication, ""),
 		context:     ctx,
 	}
-	return l.initialize(getValueFromContextAsStringOrDefault(ctx, "loglevel", "DEBUG"))
+	return l.initialize(getValueFromContextAsStringOrDefault(ctx, LoggingContextKeyLogLevel, "DEBUG"))
 }
 
 func (l *logger) SetContext(ctx context.Context) Logger {

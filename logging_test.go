@@ -97,9 +97,9 @@ func Test_LoggerFromContextWithValues(t *testing.T) {
 	envInput := "staging"
 	applicationInput := "test-app"
 
-	ctx := context.WithValue(context.Background(), "region", regionInput)
-	ctx = context.WithValue(ctx, "env", envInput)
-	ctx = context.WithValue(ctx, "application", applicationInput)
+	ctx := context.WithValue(context.Background(), LoggingContextKeyRegion, regionInput)
+	ctx = context.WithValue(ctx, LoggingContextKeyEnv, envInput)
+	ctx = context.WithValue(ctx, LoggingContextKeyApplication, applicationInput)
 	l := FromContext(ctx).(*logger)
 
 	if l.region != regionInput {
@@ -113,5 +113,40 @@ func Test_LoggerFromContextWithValues(t *testing.T) {
 	}
 	if l.context == nil {
 		t.Error("Expected context to be initialized, got nil")
+	}
+}
+
+func Test_LoggerSetContext(t *testing.T) {
+	regionInput := "ap-southeast-1"
+	envInput := "qa"
+	applicationInput := "demo-app"
+	regionValue := "new-region"
+	l := NewLogger(regionInput, envInput, applicationInput).(*logger)
+	if l.context.Value(LoggingContextKeyRegion) != nil {
+		t.Error("Expected context to be empty, got a value")
+	}
+	ctx := context.WithValue(context.Background(), LoggingContextKeyRegion, regionValue)
+	l = l.SetContext(ctx).(*logger)
+	if l.context == nil {
+		t.Error("Expected context to be set, got nil")
+	}
+	if l.context.Value(LoggingContextKeyRegion) != regionValue {
+		t.Errorf("Expected context region to be '%s', got '%v'", regionValue, l.context.Value(LoggingContextKeyRegion))
+	}
+}
+
+func Test_LoggerInfo(t *testing.T) {
+	regionInput := "us-east-1"
+	envInput := "dev"
+	applicationInput := "my-app"
+	l := NewLogger(regionInput, envInput, applicationInput).(*logger)
+	testLogger, logGetter := l.testLogger(t)
+
+	testMessage := "This is a test log message"
+	testLogger.Info(testMessage)
+
+	logOutput := logGetter.Get()
+	if !bytes.Contains([]byte(logOutput), []byte(testMessage)) {
+		t.Errorf("Expected log output to contain '%s', got '%s'", testMessage, logOutput)
 	}
 }
