@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
+  release:
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v7
