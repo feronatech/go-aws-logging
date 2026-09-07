@@ -1,8 +1,10 @@
-package logging
+package core
 
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"log"
 	"log/slog"
 	"testing"
 )
@@ -16,7 +18,9 @@ type logGetter struct {
 }
 
 func (l *logGetter) Get() string {
-	return l.buffer.String()
+	result := l.buffer.String()
+	log.Printf("Captured log output: %s", result)
+	return result
 }
 
 func (l *logger) testLogger(t *testing.T) (logger, LogGetter) {
@@ -143,10 +147,48 @@ func Test_LoggerInfo(t *testing.T) {
 	testLogger, logGetter := l.testLogger(t)
 
 	testMessage := "This is a test log message"
-	testLogger.Info(testMessage)
+	testLogger.Info(testMessage, nil)
 
 	logOutput := logGetter.Get()
 	if !bytes.Contains([]byte(logOutput), []byte(testMessage)) {
 		t.Errorf("Expected log output to contain '%s', got '%s'", testMessage, logOutput)
+	}
+}
+
+func Test_LoggerInfoWithExtra(t *testing.T) {
+	regionInput := "us-east-1"
+	envInput := "dev"
+	applicationInput := "my-app"
+
+	extraUserIdKey := "userId"
+	extraUserIdValue := "user-67890"
+	extraRequestIdKey := "requestId"
+	extraRequestIdValue := "12345"
+	extraRequestMsKey := "requestMs"
+	extraRequestMsValue := 250
+
+	l := NewLogger(regionInput, envInput, applicationInput).(*logger)
+	testLogger, logGetter := l.testLogger(t)
+
+	testMessage := "This is a test log message"
+	testLogger.Info(testMessage, map[string]any{
+		extraUserIdKey:    extraUserIdValue,
+		extraRequestIdKey: extraRequestIdValue,
+		extraRequestMsKey: extraRequestMsValue,
+	})
+
+	logOutput := logGetter.Get()
+	for _, key := range []string{
+		testMessage,
+		extraUserIdKey,
+		extraUserIdValue,
+		extraRequestIdKey,
+		extraRequestIdValue,
+		extraRequestMsKey,
+		fmt.Sprintf("%d", extraRequestMsValue),
+	} {
+		if !bytes.Contains([]byte(logOutput), []byte(key)) {
+			t.Errorf("Expected log output to contain '%s', got '%s'", key, logOutput)
+		}
 	}
 }
