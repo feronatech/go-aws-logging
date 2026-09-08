@@ -1,5 +1,9 @@
 # Golang AWS Logging Utility Library
 
+![Static Badge](https://img.shields.io/badge/aws-SDK_v2-orange) ![Static Badge](https://img.shields.io/badge/Go-1.25%2B-%2300ADD8?logo=go) [![Go Reference](https://img.shields.io/badge/Reference-%2300ADD8?logo=go&logoColor=white)](https://pkg.go.dev/github.com/feronatech/go-aws-logging) [![GitHub License](https://img.shields.io/github/license/feronatech/go-aws-logging?label=License&color=purple)](LICENSE)
+
+
+
 Structured JSON logging for Go services - built with AWS Lambda in mind, but cloud-agnostic by design.
 
 Every log line is a single JSON object with consistent top-level fields (`timestamp`, `level`, `message`, `service`, `region`, `environment`), an arbitrary `context` bag for your own fields, and for errors, an automatically extracted `error` object containing the error name, type and stack trace.
