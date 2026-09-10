@@ -16,6 +16,9 @@ jobs:
   release:
     uses: feronatech/shared-workflows/.github/workflows/go-lib-release.yml@main
     needs: version
+    permissions:
+      contents: write
+      id-token: write
     with:
       wait-for-checks: "ci.yml,lint.yml,build.yml"
       release-body: |
