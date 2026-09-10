@@ -5,6 +5,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: cve-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cve:
     uses: feronatech/shared-workflows/.github/workflows/go-cve.yml@main
