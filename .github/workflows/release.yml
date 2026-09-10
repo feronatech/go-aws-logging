@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Get Version
         id: get_version
-        uses: feronatech/shared-workflows/.github/actions/get-version@main
+        uses: feronatech/shared-workflows/.github/actions/get-version-from-tag@main
   release:
     uses: feronatech/shared-workflows/.github/workflows/go-lib-release.yml@main
     needs: version
