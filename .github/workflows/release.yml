@@ -5,13 +5,23 @@ on:
       - 'v*.*.*'
 
 jobs:
+  version:
+    runs-on: ubuntu-slim
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get Version
+        id: get_version
+        uses: feronatech/shared-workflows/.github/actions/get-version@main
   release:
     uses: feronatech/shared-workflows/.github/workflows/go-lib-release.yml@main
+    needs: version
     with:
+      wait-for-checks: "ci.yml,lint.yml,build.yml"
       release-body: |
         **Installation:**
         ```bash
-        go get github.com/feronatech/go-aws-logging@v${{ steps.get_version.outputs.version }}
+        go get github.com/feronatech/go-aws-logging@v${{ needs.version.outputs.version }}
         ```
         **Usage:**
         ```go
