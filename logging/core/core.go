@@ -137,7 +137,7 @@ func handleErrorAttribute(err error) slog.Attr {
 }
 
 func (l *logger) Debug(message string, extra map[string]any) {
-	l.InfoCtx(l.context, message, extra)
+	l.DebugCtx(l.context, message, extra)
 }
 
 func (l *logger) DebugCtx(ctx context.Context, message string, extra map[string]any) {
