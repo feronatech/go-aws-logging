@@ -27,8 +27,11 @@ type LoggingOptions struct {
 	LogLevel    string
 }
 
+type Hook func(context.Context, slog.Level, string)
+
 type Logger interface {
 	SetContext(ctx context.Context) Logger
+	RegisterHook(level slog.Level, hook Hook)
 	Debug(message string, extra map[string]any)
 	DebugCtx(ctx context.Context, message string, extra map[string]any)
 	Info(message string, extra map[string]any)
@@ -45,6 +48,7 @@ type logger struct {
 	application string
 	context     context.Context
 	handler     *slog.Logger
+	hooks       map[slog.Level][]Hook
 }
 
 func (l *logger) initialize(logLevel string) Logger {
@@ -80,6 +84,7 @@ func NewLogger(region string, env string, application string) Logger {
 		env:         env,
 		application: application,
 		context:     context.Background(),
+		hooks:       make(map[slog.Level][]Hook),
 	}
 	return l.initialize(slog.LevelDebug.String())
 }
@@ -90,6 +95,7 @@ func FromOptions(options LoggingOptions) Logger {
 		env:         options.Env,
 		application: options.Application,
 		context:     context.Background(),
+		hooks:       make(map[slog.Level][]Hook),
 	}
 	return l.initialize(options.LogLevel)
 }
@@ -100,6 +106,7 @@ func FromContext(ctx context.Context) Logger {
 		env:         utils.GetValueFromContextAsStringOrDefault(ctx, LoggingContextKeyEnv, ""),
 		application: utils.GetValueFromContextAsStringOrDefault(ctx, LoggingContextKeyApplication, ""),
 		context:     ctx,
+		hooks:       make(map[slog.Level][]Hook),
 	}
 	return l.initialize(utils.GetValueFromContextAsStringOrDefault(ctx, LoggingContextKeyLogLevel, "DEBUG"))
 }
@@ -107,6 +114,13 @@ func FromContext(ctx context.Context) Logger {
 func (l *logger) SetContext(ctx context.Context) Logger {
 	l.context = ctx
 	return l
+}
+
+func (l *logger) RegisterHook(level slog.Level, hook Hook) {
+	if l.hooks == nil {
+		l.hooks = make(map[slog.Level][]Hook)
+	}
+	l.hooks[level] = append(l.hooks[level], hook)
 }
 
 func handleExtraAttributes(extra map[string]any) slog.Attr {
@@ -142,6 +156,9 @@ func (l *logger) Debug(message string, extra map[string]any) {
 
 func (l *logger) DebugCtx(ctx context.Context, message string, extra map[string]any) {
 	l.handler.LogAttrs(ctx, slog.LevelDebug, message, handleExtraAttributes(extra))
+	for _, hook := range l.hooks[slog.LevelDebug] {
+		hook(ctx, slog.LevelDebug, message)
+	}
 }
 
 func (l *logger) Info(message string, extra map[string]any) {
@@ -150,6 +167,9 @@ func (l *logger) Info(message string, extra map[string]any) {
 
 func (l *logger) InfoCtx(ctx context.Context, message string, extra map[string]any) {
 	l.handler.LogAttrs(ctx, slog.LevelInfo, message, handleExtraAttributes(extra))
+	for _, hook := range l.hooks[slog.LevelInfo] {
+		hook(ctx, slog.LevelInfo, message)
+	}
 }
 
 func (l *logger) Warn(message string, extra map[string]any) {
@@ -158,6 +178,9 @@ func (l *logger) Warn(message string, extra map[string]any) {
 
 func (l *logger) WarnCtx(ctx context.Context, message string, extra map[string]any) {
 	l.handler.LogAttrs(ctx, slog.LevelWarn, message, handleExtraAttributes(extra))
+	for _, hook := range l.hooks[slog.LevelWarn] {
+		hook(ctx, slog.LevelWarn, message)
+	}
 }
 
 func (l *logger) Error(message string, extra map[string]any, err error) {
@@ -166,4 +189,7 @@ func (l *logger) Error(message string, extra map[string]any, err error) {
 
 func (l *logger) ErrorCtx(ctx context.Context, message string, extra map[string]any, err error) {
 	l.handler.LogAttrs(ctx, slog.LevelError, message, handleExtraAttributes(extra), handleErrorAttribute(err))
+	for _, hook := range l.hooks[slog.LevelError] {
+		hook(ctx, slog.LevelError, message)
+	}
 }

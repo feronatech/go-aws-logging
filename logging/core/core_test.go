@@ -264,3 +264,35 @@ func Test_LoggerErrorWithRealError(t *testing.T) {
 		}
 	}
 }
+
+func Test_LoggerWithHooks(t *testing.T) {
+	regionInput := "us-east-1"
+	envInput := "dev"
+	applicationInput := "my-app"
+	l := NewLogger(regionInput, envInput, applicationInput).(*logger)
+	testLogger, logGetter := l.testLogger(t)
+
+	hookCalled := false
+	hook := func(ctx context.Context, level slog.Level, message string) {
+		hookCalled = true
+		if level != slog.LevelInfo {
+			t.Errorf("Expected hook level to be '%v', got '%v'", slog.LevelInfo, level)
+		}
+		if message != "This is a test log message" {
+			t.Errorf("Expected hook message to be 'This is a test log message', got '%s'", message)
+		}
+	}
+
+	testLogger.RegisterHook(slog.LevelInfo, hook)
+
+	testMessage := "This is a test log message"
+	testLogger.Info(testMessage, nil)
+
+	logOutput := logGetter.Get()
+	if !bytes.Contains([]byte(logOutput), []byte(testMessage)) {
+		t.Errorf("Expected log output to contain '%s', got '%s'", testMessage, logOutput)
+	}
+	if !hookCalled {
+		t.Error("Expected hook to be called, but it was not")
+	}
+}
