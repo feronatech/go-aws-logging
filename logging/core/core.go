@@ -155,6 +155,9 @@ func (l *logger) Debug(message string, extra map[string]any) {
 }
 
 func (l *logger) DebugCtx(ctx context.Context, message string, extra map[string]any) {
+	if l.handler == nil || !l.handler.Enabled(ctx, slog.LevelDebug) {
+		return
+	}
 	l.handler.LogAttrs(ctx, slog.LevelDebug, message, handleExtraAttributes(extra))
 	for _, hook := range l.hooks[slog.LevelDebug] {
 		hook(ctx, slog.LevelDebug, message)
@@ -166,6 +169,9 @@ func (l *logger) Info(message string, extra map[string]any) {
 }
 
 func (l *logger) InfoCtx(ctx context.Context, message string, extra map[string]any) {
+	if l.handler == nil || !l.handler.Enabled(ctx, slog.LevelInfo) {
+		return
+	}
 	l.handler.LogAttrs(ctx, slog.LevelInfo, message, handleExtraAttributes(extra))
 	for _, hook := range l.hooks[slog.LevelInfo] {
 		hook(ctx, slog.LevelInfo, message)
@@ -177,6 +183,9 @@ func (l *logger) Warn(message string, extra map[string]any) {
 }
 
 func (l *logger) WarnCtx(ctx context.Context, message string, extra map[string]any) {
+	if l.handler == nil || !l.handler.Enabled(ctx, slog.LevelWarn) {
+		return
+	}
 	l.handler.LogAttrs(ctx, slog.LevelWarn, message, handleExtraAttributes(extra))
 	for _, hook := range l.hooks[slog.LevelWarn] {
 		hook(ctx, slog.LevelWarn, message)
@@ -188,6 +197,9 @@ func (l *logger) Error(message string, extra map[string]any, err error) {
 }
 
 func (l *logger) ErrorCtx(ctx context.Context, message string, extra map[string]any, err error) {
+	if l.handler == nil || !l.handler.Enabled(ctx, slog.LevelError) {
+		return
+	}
 	l.handler.LogAttrs(ctx, slog.LevelError, message, handleExtraAttributes(extra), handleErrorAttribute(err))
 	for _, hook := range l.hooks[slog.LevelError] {
 		hook(ctx, slog.LevelError, message)
